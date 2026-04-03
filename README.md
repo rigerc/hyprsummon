@@ -207,22 +207,19 @@ The wizard is built with `huh` and walks through:
 Build:
 
 ```bash
-cd /mnt/extra-ssd/dev/projects/hyprsummon
-GOCACHE=/tmp/go-build-cache go build -o hyprsummon .
+go build -o hyprsummon .
 ```
 
 Run without installing:
 
 ```bash
-cd /mnt/extra-ssd/dev/projects/hyprsummon
-GOCACHE=/tmp/go-build-cache go run . run --class kitty -- kitty
+go run . run --class kitty -- kitty
 ```
 
 Test:
 
 ```bash
-cd /mnt/extra-ssd/dev/projects/hyprsummon
-GOCACHE=/tmp/go-build-cache go test ./...
+go test ./...
 ```
 
 ## ✅ Requirements
