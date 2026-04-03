@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	huh "charm.land/huh/v2"
+	"github.com/rigerc/hyprsummon/internal/wizard"
 	"github.com/spf13/cobra"
-	"hyprsummon/internal/wizard"
 )
 
 func newWizardCmd() *cobra.Command {

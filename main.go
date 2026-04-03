@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"hyprsummon/cmd"
+	"github.com/rigerc/hyprsummon/cmd"
 )
 
 func main() {

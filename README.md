@@ -4,6 +4,8 @@
 
 `hyprsummon` is a small Go CLI for Hyprland that implements a practical run-or-raise workflow.
 
+## ✨ At A Glance
+
 - if a matching window already exists, focus it
 - otherwise, launch the application
 
@@ -15,7 +17,49 @@ The CLI has three commands:
 
 There is no config file. Behavior is controlled entirely through flags.
 
-## Overview
+## 📦 Installation
+
+Quick install:
+
+```bash
+go install github.com/rigerc/hyprsummon@latest
+```
+
+Then verify it is available:
+
+```bash
+hyprsummon --help
+```
+
+Install from source:
+
+```bash
+git clone https://github.com/rigerc/hyprsummon.git
+cd hyprsummon
+GOCACHE=/tmp/go-build-cache go install .
+```
+
+Build a local binary:
+
+```bash
+git clone https://github.com/rigerc/hyprsummon.git
+cd hyprsummon
+GOCACHE=/tmp/go-build-cache go build -o hyprsummon .
+```
+
+Make sure your Go bin directory is on `PATH`. On most systems that is either:
+
+```text
+$HOME/go/bin
+```
+
+or:
+
+```text
+$(go env GOPATH)/bin
+```
+
+## 🧭 Overview
 
 `hyprsummon` connects to the current Hyprland instance, lists clients, filters them by exact match rules, selects one candidate, and then either focuses it or launches a new process.
 
@@ -32,7 +76,7 @@ A client matches only if:
 - if `--title` is set, its `title` exactly equals `--title`
 - if `--initial-class` is set, its `initialClass` exactly equals `--initial-class`
 
-## Selection And Actions
+## 🎯 Selection And Actions
 
 When multiple windows match:
 
@@ -64,7 +108,7 @@ Launch actions:
 - `--special-workspace NAME`: launch onto `special:NAME`
 - `--show-special-after-launch`: reveal the target special workspace after launch, then focus the new matching window
 
-## Scratch Mode
+## 🪄 Scratch Mode
 
 If an app should live on a named special workspace, use `--scratch` with `--special-workspace NAME`.
 
@@ -84,7 +128,7 @@ For `focus`, it expands to:
 
 This is the intended mode for app-specific special-workspace toggles such as music players, scratch terminals, or utility apps.
 
-## Examples
+## 💡 Examples
 
 Basic run-or-raise:
 
@@ -128,7 +172,7 @@ Show diagnostics on stderr:
 hyprsummon run --class kitty --verbose -- kitty
 ```
 
-## Help
+## 📚 Help
 
 Use built-in help for current flag details:
 
@@ -141,7 +185,7 @@ hyprsummon help flag --class
 hyprsummon help flag --toggle-special
 ```
 
-## Wizard
+## 🧙 Wizard
 
 Use the wizard when you want `hyprsummon` to generate the command for you.
 
@@ -158,30 +202,30 @@ The wizard is built with `huh` and walks through:
 - optional advanced flags
 - optional Hyprland bind generation
 
-## Build And Test
+## 🛠️ Build And Test
 
 Build:
 
 ```bash
-cd /mnt/extra-ssd/dev/projects/arch/hyprsummon
+cd /mnt/extra-ssd/dev/projects/hyprsummon
 GOCACHE=/tmp/go-build-cache go build -o hyprsummon .
 ```
 
 Run without installing:
 
 ```bash
-cd /mnt/extra-ssd/dev/projects/arch/hyprsummon
+cd /mnt/extra-ssd/dev/projects/hyprsummon
 GOCACHE=/tmp/go-build-cache go run . run --class kitty -- kitty
 ```
 
 Test:
 
 ```bash
-cd /mnt/extra-ssd/dev/projects/arch/hyprsummon
+cd /mnt/extra-ssd/dev/projects/hyprsummon
 GOCACHE=/tmp/go-build-cache go test ./...
 ```
 
-## Requirements
+## ✅ Requirements
 
 - Linux
 - Go 1.26+
@@ -193,7 +237,7 @@ Optional:
 
 - `notify-send` for `--notify` and `--debug`
 
-## Hyprland IPC
+## 🔌 Hyprland IPC
 
 `hyprsummon` connects to:
 
@@ -203,7 +247,7 @@ $XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket.sock
 
 If `HYPRLAND_INSTANCE_SIGNATURE` is missing, it falls back to discovering a Hyprland socket under `$XDG_RUNTIME_DIR/hypr`.
 
-## Limitations
+## ⚠️ Limitations
 
 - no config file support
 - no regex matching

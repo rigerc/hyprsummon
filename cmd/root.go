@@ -11,9 +11,9 @@ import (
 
 	hyprland "github.com/thiagokokada/hyprland-go"
 
+	"github.com/rigerc/hyprsummon/internal/hypr"
+	notifycmd "github.com/rigerc/hyprsummon/internal/notify"
 	"github.com/spf13/cobra"
-	"hyprsummon/internal/hypr"
-	notifycmd "hyprsummon/internal/notify"
 )
 
 func Execute(args []string) int {

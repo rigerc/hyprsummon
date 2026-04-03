@@ -1,4 +1,4 @@
-module hyprsummon
+module github.com/rigerc/hyprsummon
 
 go 1.26.1
 

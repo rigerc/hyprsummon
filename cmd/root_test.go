@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"hyprsummon/internal/hypr"
+	"github.com/rigerc/hyprsummon/internal/hypr"
 )
 
 func TestResolveSocketPathUsesInstanceSignature(t *testing.T) {
