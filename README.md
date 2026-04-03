@@ -1,6 +1,6 @@
 # hyprsummon
 
-> Warning: this is a vibe coded project built by Codex. Treat the code and behavior as experimental, and verify changes before relying on it.
+> 🤖 Warning: this is a vibe coded project built by Codex. Treat the code and behavior as experimental, and verify changes before relying on it.
 
 `hyprsummon` is a small Go CLI for Hyprland that implements a practical run-or-raise workflow.
 
