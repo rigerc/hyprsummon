@@ -117,7 +117,7 @@ func TestFormatLaunch(t *testing.T) {
 		{
 			name: "plain",
 			opts: Options{Launch: []string{"kitty", "--class", "scratch"}},
-			want: "exec kitty --class scratch",
+			want: `hl.dsp.exec_cmd("kitty --class scratch")`,
 		},
 		{
 			name: "special workspace",
@@ -125,7 +125,7 @@ func TestFormatLaunch(t *testing.T) {
 				SpecialWorkspace: "scratch",
 				Launch:           []string{"kitty", "--class", "scratch pad"},
 			},
-			want: "exec [workspace special:scratch silent] kitty --class 'scratch pad'",
+			want: `hl.dsp.exec_cmd("kitty --class 'scratch pad'", { workspace = "special:scratch silent" })`,
 		},
 	}
 
@@ -140,7 +140,7 @@ func TestFormatLaunch(t *testing.T) {
 
 func TestFormatPull(t *testing.T) {
 	got := FormatPull(7, "0xabc")
-	want := "movetoworkspace 7,address:0xabc"
+	want := `hl.dsp.window.move({ workspace = "7", follow = true, window = "address:0xabc" })`
 	if got != want {
 		t.Fatalf("FormatPull() = %q, want %q", got, want)
 	}
@@ -148,21 +148,29 @@ func TestFormatPull(t *testing.T) {
 
 func TestFormatMoveToSpecialSilent(t *testing.T) {
 	got := FormatMoveToSpecialSilent("music", "0xabc")
-	want := "movetoworkspacesilent special:music,address:0xabc"
+	want := `hl.dsp.window.move({ workspace = "special:music", follow = false, window = "address:0xabc" })`
 	if got != want {
 		t.Fatalf("FormatMoveToSpecialSilent() = %q, want %q", got, want)
 	}
 }
 
 func TestFormatToggleSpecial(t *testing.T) {
-	if got := FormatToggleSpecial("special:scratch"); got != "togglespecialworkspace scratch" {
-		t.Fatalf("FormatToggleSpecial() = %q, want togglespecialworkspace scratch", got)
+	want := `hl.dsp.workspace.toggle_special("scratch")`
+	if got := FormatToggleSpecial("special:scratch"); got != want {
+		t.Fatalf("FormatToggleSpecial() = %q, want %q", got, want)
 	}
 }
 
 func TestFormatFullscreen(t *testing.T) {
-	if got := FormatFullscreen(1); got != "fullscreen 1 set" {
-		t.Fatalf("FormatFullscreen() = %q, want fullscreen 1 set", got)
+	want := `hl.dsp.window.fullscreen({ mode = "maximized", action = "set" })`
+	if got := FormatFullscreen("maximized"); got != want {
+		t.Fatalf("FormatFullscreen() = %q, want %q", got, want)
+	}
+}
+
+func TestLuaQuote(t *testing.T) {
+	if got, want := luaQuote("a\\b\"c\nd"), `"a\\b\"c\nd"`; got != want {
+		t.Fatalf("luaQuote() = %q, want %q", got, want)
 	}
 }
 
@@ -188,7 +196,7 @@ func TestRunnerRunExistingWindowFocused(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	wantDispatches := []string{"focuswindow address:0x1"}
+	wantDispatches := []string{`hl.dsp.focus({ window = "address:0x1" })`}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
 	}
@@ -218,8 +226,8 @@ func TestRunnerRunPullsExistingWindow(t *testing.T) {
 	}
 
 	wantDispatches := []string{
-		"movetoworkspace 4,address:0x1",
-		"focuswindow address:0x1",
+		`hl.dsp.window.move({ workspace = "4", follow = true, window = "address:0x1" })`,
+		`hl.dsp.focus({ window = "address:0x1" })`,
 	}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
@@ -248,8 +256,8 @@ func TestRunnerRunTogglesHiddenSpecialBeforeFocus(t *testing.T) {
 	}
 
 	wantDispatches := []string{
-		"togglespecialworkspace scratch",
-		"focuswindow address:0x1",
+		`hl.dsp.workspace.toggle_special("scratch")`,
+		`hl.dsp.focus({ window = "address:0x1" })`,
 	}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
@@ -283,9 +291,9 @@ func TestRunnerRunMovesExistingWindowToSpecialThenReveals(t *testing.T) {
 	}
 
 	wantDispatches := []string{
-		"movetoworkspacesilent special:music,address:0x1",
-		"togglespecialworkspace music",
-		"focuswindow address:0x1",
+		`hl.dsp.window.move({ workspace = "special:music", follow = false, window = "address:0x1" })`,
+		`hl.dsp.workspace.toggle_special("music")`,
+		`hl.dsp.focus({ window = "address:0x1" })`,
 	}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
@@ -317,7 +325,7 @@ func TestRunnerRunFocusedVisibleSpecialTogglesHidden(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	wantDispatches := []string{"togglespecialworkspace music"}
+	wantDispatches := []string{`hl.dsp.workspace.toggle_special("music")`}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
 	}
@@ -348,7 +356,7 @@ func TestRunnerRunVisibleSpecialFocusesWithoutToggleWhenNotActive(t *testing.T) 
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	wantDispatches := []string{"focuswindow address:0x1"}
+	wantDispatches := []string{`hl.dsp.focus({ window = "address:0x1" })`}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
 	}
@@ -375,8 +383,8 @@ func TestRunnerRunAppliesMaximizeAfterFocus(t *testing.T) {
 	}
 
 	wantDispatches := []string{
-		"focuswindow address:0x1",
-		"fullscreen 1 set",
+		`hl.dsp.focus({ window = "address:0x1" })`,
+		`hl.dsp.window.fullscreen({ mode = "maximized", action = "set" })`,
 	}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
@@ -406,7 +414,7 @@ func TestRunnerRunLaunchesInBackground(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	wantDispatches := []string{"exec kitty"}
+	wantDispatches := []string{`hl.dsp.exec_cmd("kitty")`}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
 	}
@@ -440,8 +448,8 @@ func TestRunnerRunLaunchesAndFocusesNewWindow(t *testing.T) {
 	}
 
 	wantDispatches := []string{
-		"exec kitty",
-		"focuswindow address:0x2",
+		`hl.dsp.exec_cmd("kitty")`,
+		`hl.dsp.focus({ window = "address:0x2" })`,
 	}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
@@ -475,7 +483,7 @@ func TestRunnerRunLaunchesSpecialWorkspaceWithoutRefocus(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
-	wantDispatches := []string{"exec [workspace special:scratch silent] kitty"}
+	wantDispatches := []string{`hl.dsp.exec_cmd("kitty", { workspace = "special:scratch silent" })`}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
 	}
@@ -511,9 +519,9 @@ func TestRunnerRunLaunchesSpecialWorkspaceAndRevealsWhenRequested(t *testing.T) 
 	}
 
 	wantDispatches := []string{
-		"exec [workspace special:music silent] spotify-launcher",
-		"togglespecialworkspace music",
-		"focuswindow address:0x2",
+		`hl.dsp.exec_cmd("spotify-launcher", { workspace = "special:music silent" })`,
+		`hl.dsp.workspace.toggle_special("music")`,
+		`hl.dsp.focus({ window = "address:0x2" })`,
 	}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
@@ -551,10 +559,10 @@ func TestRunnerRunLaunchesSpecialWorkspaceRevealAppliesMaximizeAfterFocus(t *tes
 	}
 
 	wantDispatches := []string{
-		"exec [workspace special:music silent] spotify-launcher",
-		"togglespecialworkspace music",
-		"focuswindow address:0x2",
-		"fullscreen 1 set",
+		`hl.dsp.exec_cmd("spotify-launcher", { workspace = "special:music silent" })`,
+		`hl.dsp.workspace.toggle_special("music")`,
+		`hl.dsp.focus({ window = "address:0x2" })`,
+		`hl.dsp.window.fullscreen({ mode = "maximized", action = "set" })`,
 	}
 	if !reflect.DeepEqual(client.dispatches, wantDispatches) {
 		t.Fatalf("dispatches = %#v, want %#v", client.dispatches, wantDispatches)
@@ -683,7 +691,7 @@ func TestRunnerRunDebugAndVerboseBothEmitDiagnostics(t *testing.T) {
 	if len(notifier.calls) == 0 {
 		t.Fatal("notifications = 0, want debug notifications")
 	}
-	if !strings.Contains(stderr.String(), "dispatching \"exec kitty\"") {
+	if !strings.Contains(stderr.String(), "dispatching \"hl.dsp.exec_cmd(\\\"kitty\\\")\"") {
 		t.Fatalf("stderr = %q, want debug diagnostics", stderr.String())
 	}
 }

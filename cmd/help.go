@@ -61,7 +61,7 @@ var flagHelpText = map[string]flagHelp{
 	},
 	"fullscreen": {
 		summary:      "Apply Hyprland fullscreen mode after focusing the selected window.",
-		details:      "This dispatches `fullscreen 0 set` after hyprsummon focuses a window. It is mutually exclusive with --maximize.",
+		details:      "This dispatches `hl.dsp.window.fullscreen` with fullscreen mode after hyprsummon focuses a window. It is mutually exclusive with --maximize.",
 		defaultValue: "false",
 		example:      "hyprsummon run --class firefox --fullscreen -- firefox",
 	},
@@ -73,13 +73,13 @@ var flagHelpText = map[string]flagHelp{
 	},
 	"maximize": {
 		summary:      "Apply Hyprland maximize mode after focusing the selected window.",
-		details:      "This dispatches `fullscreen 1 set` after hyprsummon focuses a window. It is mutually exclusive with --fullscreen.",
+		details:      "This dispatches `hl.dsp.window.fullscreen` with maximized mode after hyprsummon focuses a window. It is mutually exclusive with --fullscreen.",
 		defaultValue: "false",
 		example:      "hyprsummon run --class firefox --maximize -- firefox",
 	},
 	"move-to-special": {
 		summary:      "Move an existing match to the named special workspace before focusing it.",
-		details:      "Use this with --special-workspace when that workspace is the canonical home for an app. Hyprsummon dispatches movetoworkspacesilent to the target special workspace before any reveal or focus step. It is mutually exclusive with --pull.",
+		details:      "Use this with --special-workspace when that workspace is the canonical home for an app. Hyprsummon moves the window with `hl.dsp.window.move` before any reveal or focus step. It is mutually exclusive with --pull.",
 		defaultValue: "false",
 		example:      "hyprsummon run --class spotify --special-workspace music --move-to-special --toggle-special -- spotify-launcher",
 	},
@@ -109,7 +109,7 @@ var flagHelpText = map[string]flagHelp{
 	},
 	"pull": {
 		summary:      "Move an existing match to the active workspace before focusing it.",
-		details:      "When the selected window is on another workspace, hyprsummon dispatches movetoworkspace for that window and then focuses it.",
+		details:      "When the selected window is on another workspace, hyprsummon dispatches `hl.dsp.window.move` for that window and then focuses it.",
 		defaultValue: "false",
 		example:      "hyprsummon run --class firefox --pull -- firefox",
 	},
@@ -121,7 +121,7 @@ var flagHelpText = map[string]flagHelp{
 	},
 	"special-workspace": {
 		summary:      "Name the target special workspace for launch and special-workspace actions.",
-		details:      "In `run`, hyprsummon formats launch as `exec [workspace special:NAME silent] <command>`. With --move-to-special, --toggle-special, --show-special-after-launch, or --scratch, this also becomes the target workspace for existing-window relocation and visibility handling.",
+		details:      "In `run`, hyprsummon launches with `hl.dsp.exec_cmd` and a silent `special:NAME` workspace rule. With --move-to-special, --toggle-special, --show-special-after-launch, or --scratch, this also becomes the target workspace for existing-window relocation and visibility handling.",
 		defaultValue: "",
 		example:      "hyprsummon run --class spotify --special-workspace music -- spotify",
 	},

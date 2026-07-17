@@ -307,9 +307,9 @@ func (r Runner) applyFocusMode(opts Options) error {
 		return nil
 	}
 
-	mode := 0
+	mode := "fullscreen"
 	if opts.Maximize {
-		mode = 1
+		mode = "maximized"
 	}
 
 	if err := r.dispatchOne(opts, FormatFullscreen(mode)); err != nil {
@@ -504,24 +504,24 @@ func stablePartition(matches []hyprland.Client, first func(hyprland.Client) bool
 }
 
 func FormatFocus(address string) string {
-	return fmt.Sprintf("focuswindow address:%s", address)
+	return fmt.Sprintf("hl.dsp.focus({ window = %s })", luaQuote("address:"+address))
 }
 
 func FormatPull(workspaceID int, address string) string {
-	return fmt.Sprintf("movetoworkspace %d,address:%s", workspaceID, address)
+	return fmt.Sprintf("hl.dsp.window.move({ workspace = %q, follow = true, window = %s })", fmt.Sprint(workspaceID), luaQuote("address:"+address))
 }
 
 func FormatMoveToSpecialSilent(workspace string, address string) string {
-	return fmt.Sprintf("movetoworkspacesilent special:%s,address:%s", workspace, address)
+	return fmt.Sprintf("hl.dsp.window.move({ workspace = %s, follow = false, window = %s })", luaQuote("special:"+workspace), luaQuote("address:"+address))
 }
 
 func FormatLaunch(opts Options) string {
-	command := JoinCommand(opts.Launch)
+	command := luaQuote(JoinCommand(opts.Launch))
 	if opts.SpecialWorkspace == "" {
-		return "exec " + command
+		return "hl.dsp.exec_cmd(" + command + ")"
 	}
 
-	return fmt.Sprintf("exec [workspace special:%s silent] %s", opts.SpecialWorkspace, command)
+	return fmt.Sprintf("hl.dsp.exec_cmd(%s, { workspace = %s })", command, luaQuote("special:"+opts.SpecialWorkspace+" silent"))
 }
 
 func FormatToggleSpecial(workspace string) string {
@@ -529,14 +529,15 @@ func FormatToggleSpecial(workspace string) string {
 	if arg == "special" {
 		arg = ""
 	}
-	if arg == "" {
-		return "togglespecialworkspace"
-	}
-	return "togglespecialworkspace " + arg
+	return "hl.dsp.workspace.toggle_special(" + luaQuote(arg) + ")"
 }
 
-func FormatFullscreen(mode int) string {
-	return fmt.Sprintf("fullscreen %d set", mode)
+func FormatFullscreen(mode string) string {
+	return fmt.Sprintf("hl.dsp.window.fullscreen({ mode = %s, action = \"set\" })", luaQuote(mode))
+}
+
+func luaQuote(value string) string {
+	return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`, "\n", `\n`, "\r", `\r`).Replace(value) + `"`
 }
 
 func JoinCommand(args []string) string {
