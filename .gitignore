@@ -3,3 +3,5 @@ hyprsummon
 .codex/
 .claude/
 docs/
+# Added by goreleaser init:
+dist/

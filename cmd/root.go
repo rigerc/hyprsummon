@@ -36,13 +36,13 @@ func newRootCmd() *cobra.Command {
 		Args:          cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			_ = cmd.Help()
-			return errors.New("a command is required: run, focus, or wizard")
+			return errors.New("a command is required: run, focus, or setup")
 		},
 	}
 
 	root.AddCommand(newRunCmd())
 	root.AddCommand(newFocusCmd())
-	root.AddCommand(newWizardCmd())
+	root.AddCommand(newSetupCmd())
 	helpCmd := newHelpCmd(root)
 	root.SetHelpCommand(helpCmd)
 	root.AddCommand(helpCmd)

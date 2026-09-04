@@ -1,8 +1,9 @@
-package wizard
+package setup
 
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -46,11 +47,6 @@ const (
 	FormatBoth    = "both"
 )
 
-const (
-	BindStyleBind  = "bind"
-	BindStyleBindd = "bindd"
-)
-
 type State struct {
 	Intent            string
 	Class             string
@@ -68,26 +64,23 @@ type State struct {
 	Verbose           bool
 	Debug             bool
 	GenerateBind      bool
-	BindStyle         string
 	BindKey           string
 	BindDescription   string
+	Executable        string
 }
 
-func NewState(format string, bindKey string, bindDesc string) State {
-	state := State{
+func NewState(format, bindKey, bindDescription, executable string) State {
+	return State{
 		Intent:            IntentRunOrRaise,
 		CustomCommandKind: CommandRun,
 		WorkspaceMode:     WorkspaceDefault,
 		Preference:        PreferenceNone,
 		FocusMode:         FocusModeNone,
-		BindStyle:         BindStyleBindd,
+		GenerateBind:      format == FormatBind,
 		BindKey:           bindKey,
-		BindDescription:   bindDesc,
+		BindDescription:   bindDescription,
+		Executable:        executable,
 	}
-	if format == FormatBind {
-		state.GenerateBind = true
-	}
-	return state
 }
 
 type Outputs struct {
@@ -101,25 +94,21 @@ func (s State) Outputs(format string) (Outputs, error) {
 		return Outputs{}, err
 	}
 
-	command, err := s.BuildCommand()
-	if err != nil {
-		return Outputs{}, err
-	}
-
-	outputs := Outputs{
-		Summary: s.Summary(),
-		Command: command,
-	}
-	if s.GenerateBind {
-		outputs.Bind, err = s.BuildBind(command)
-		if err != nil {
-			return Outputs{}, err
-		}
+	command := s.BuildCommand()
+	outputs := Outputs{Summary: s.Summary(), Command: command}
+	if s.GenerateBind && format != FormatCommand {
+		outputs.Bind = s.BuildBind(command)
 	}
 	return outputs, nil
 }
 
 func (s State) Validate(format string) error {
+	if format != FormatCommand && format != FormatBind && format != FormatBoth {
+		return fmt.Errorf("unknown output format %q", format)
+	}
+	if !filepath.IsAbs(s.Executable) {
+		return errors.New("hyprsummon executable path must be absolute")
+	}
 	if strings.TrimSpace(s.Class) == "" {
 		return errors.New("class is required")
 	}
@@ -138,11 +127,8 @@ func (s State) Validate(format string) error {
 	if format == FormatBind && !s.GenerateBind {
 		return errors.New("bind output requires bind generation")
 	}
-	if s.GenerateBind && strings.TrimSpace(s.BindKey) == "" {
+	if s.GenerateBind && format != FormatCommand && strings.TrimSpace(s.BindKey) == "" {
 		return errors.New("bind key is required")
-	}
-	if s.GenerateBind && s.BindStyle == BindStyleBindd && strings.TrimSpace(s.BindDescription) == "" {
-		return errors.New("bind description is required for bindd")
 	}
 	if s.FocusMode != FocusModeNone && s.FocusMode != FocusModeFullscreen && s.FocusMode != FocusModeMaximize {
 		return fmt.Errorf("unknown focus mode %q", s.FocusMode)
@@ -150,21 +136,17 @@ func (s State) Validate(format string) error {
 	return nil
 }
 
-func (s State) BuildCommand() (string, error) {
-	parts := []string{"hyprsummon", s.commandKind()}
-	parts = append(parts, "--class", shellQuote(strings.TrimSpace(s.Class)))
-
+func (s State) BuildCommand() string {
+	parts := []string{shellQuote(s.Executable), s.commandKind(), "--class", shellQuote(strings.TrimSpace(s.Class))}
 	if title := strings.TrimSpace(s.Title); title != "" {
 		parts = append(parts, "--title", shellQuote(title))
 	}
 	if initialClass := strings.TrimSpace(s.InitialClass); initialClass != "" {
 		parts = append(parts, "--initial-class", shellQuote(initialClass))
 	}
-
 	if s.usesSpecialWorkspace() {
 		parts = append(parts, "--special-workspace", shellQuote(strings.TrimSpace(s.SpecialWorkspace)))
 	}
-
 	if s.UseScratch {
 		parts = append(parts, "--scratch")
 	} else {
@@ -179,7 +161,6 @@ func (s State) BuildCommand() (string, error) {
 			}
 		}
 	}
-
 	switch s.Preference {
 	case PreferenceFloating:
 		parts = append(parts, "--prefer-floating")
@@ -190,7 +171,6 @@ func (s State) BuildCommand() (string, error) {
 	case PreferenceExcludeSpecial:
 		parts = append(parts, "--exclude-special")
 	}
-
 	if s.Cycle {
 		parts = append(parts, "--cycle")
 	}
@@ -209,31 +189,19 @@ func (s State) BuildCommand() (string, error) {
 	if s.Debug {
 		parts = append(parts, "--debug")
 	}
-
 	if s.commandKind() == CommandRun {
 		parts = append(parts, "--", strings.TrimSpace(s.LaunchCommand))
 	}
-
-	return strings.Join(parts, " "), nil
+	return strings.Join(parts, " ")
 }
 
-func (s State) BuildBind(command string) (string, error) {
-	key := strings.TrimSpace(s.BindKey)
-	if key == "" {
-		return "", errors.New("bind key is required")
+func (s State) BuildBind(command string) string {
+	flags := "{ repeating = false"
+	if description := strings.TrimSpace(s.BindDescription); description != "" {
+		flags += ", description = " + luaQuote(description)
 	}
-	switch s.BindStyle {
-	case "", BindStyleBind:
-		return fmt.Sprintf("bind = %s, exec, %s", key, command), nil
-	case BindStyleBindd:
-		desc := strings.TrimSpace(s.BindDescription)
-		if desc == "" {
-			return "", errors.New("bind description is required for bindd")
-		}
-		return fmt.Sprintf("bindd = %s, %s, exec, %s", key, desc, command), nil
-	default:
-		return "", fmt.Errorf("unknown bind style %q", s.BindStyle)
-	}
+	flags += " }"
+	return fmt.Sprintf("hl.bind(%s, hl.dsp.exec_cmd(%s), %s)", luaQuote(strings.TrimSpace(s.BindKey)), luaQuote(command), flags)
 }
 
 func (s State) Summary() string {
@@ -258,16 +226,12 @@ func (s State) commandKind() string {
 	switch s.Intent {
 	case IntentFocusOnly:
 		return CommandFocus
-	case IntentBringHere, IntentRunOrRaise, IntentScratchApp:
-		return CommandRun
 	case IntentCustom:
 		if s.CustomCommandKind == CommandFocus {
 			return CommandFocus
 		}
-		return CommandRun
-	default:
-		return CommandRun
 	}
+	return CommandRun
 }
 
 func (s State) effectiveWorkspaceMode() string {
@@ -280,22 +244,52 @@ func (s State) effectiveWorkspaceMode() string {
 		if s.WorkspaceMode != "" {
 			return s.WorkspaceMode
 		}
-		return WorkspaceDefault
-	default:
-		return WorkspaceDefault
 	}
+	return WorkspaceDefault
 }
 
 func (s State) usesSpecialWorkspace() bool {
 	return s.Intent == IntentScratchApp || s.effectiveWorkspaceMode() == WorkspaceSpecial
 }
 
-func shellQuote(arg string) string {
-	if arg == "" {
+func shellQuote(value string) string {
+	if value == "" {
 		return "''"
 	}
-	if !strings.ContainsAny(arg, " \t\n'\"\\$`!&|;<>()[]{}*?~") {
-		return arg
+	if !strings.ContainsAny(value, " \t\n'\"\\$`!&|;<>()[]{}*?~") {
+		return value
 	}
-	return "'" + strings.ReplaceAll(arg, "'", `'"'"'`) + "'"
+	return "'" + strings.ReplaceAll(value, "'", `'"'"'`) + "'"
+}
+
+func luaQuote(value string) string {
+	var output strings.Builder
+	output.Grow(len(value) + 2)
+	output.WriteByte('"')
+	for _, b := range []byte(value) {
+		switch b {
+		case '\\':
+			output.WriteString(`\\`)
+		case '"':
+			output.WriteString(`\"`)
+		case '\b':
+			output.WriteString(`\b`)
+		case '\f':
+			output.WriteString(`\f`)
+		case '\n':
+			output.WriteString(`\n`)
+		case '\r':
+			output.WriteString(`\r`)
+		case '\t':
+			output.WriteString(`\t`)
+		default:
+			if b < 0x20 || b == 0x7f {
+				_, _ = fmt.Fprintf(&output, `\x%02X`, b)
+			} else {
+				output.WriteByte(b)
+			}
+		}
+	}
+	output.WriteByte('"')
+	return output.String()
 }

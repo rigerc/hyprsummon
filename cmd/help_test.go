@@ -17,7 +17,7 @@ func TestRootRequiresSubcommand(t *testing.T) {
 	if err == nil {
 		t.Fatal("Execute() error = nil, want missing command error")
 	}
-	if !strings.Contains(err.Error(), "a command is required: run, focus, or wizard") {
+	if !strings.Contains(err.Error(), "a command is required: run, focus, or setup") {
 		t.Fatalf("Execute() error = %v, want missing command message", err)
 	}
 }
@@ -45,6 +45,7 @@ func TestRunAndFocusHelp(t *testing.T) {
 	}{
 		{name: "run help", args: []string{"run", "--help"}},
 		{name: "focus help", args: []string{"focus", "--help"}},
+		{name: "setup help", args: []string{"setup", "--help"}},
 		{name: "wizard help", args: []string{"wizard", "--help"}},
 	}
 
@@ -60,6 +61,31 @@ func TestRunAndFocusHelp(t *testing.T) {
 				t.Fatalf("Execute() error = %v", err)
 			}
 		})
+	}
+}
+
+func TestSetupIsCanonicalAndWizardIsAlias(t *testing.T) {
+	t.Parallel()
+
+	root := newRootCmd()
+	setup, _, err := root.Find([]string{"setup"})
+	if err != nil || setup == nil || setup.Name() != "setup" {
+		t.Fatalf("Find(setup) = %v, %v", setup, err)
+	}
+	wizard, _, err := root.Find([]string{"wizard"})
+	if err != nil || wizard != setup {
+		t.Fatalf("Find(wizard) = %v, %v; want setup command", wizard, err)
+	}
+}
+
+func TestSetupRejectsForceWithoutOutputBeforeConnecting(t *testing.T) {
+	t.Parallel()
+
+	root := newRootCmd()
+	root.SetArgs([]string{"setup", "--force"})
+	err := root.Execute()
+	if err == nil || !strings.Contains(err.Error(), "--force requires --output") {
+		t.Fatalf("Execute() error = %v", err)
 	}
 }
 

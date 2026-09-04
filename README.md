@@ -13,7 +13,9 @@ The CLI has three commands:
 
 - `run`: focus a matching window, or launch when no match exists
 - `focus`: focus a matching window only
-- `wizard`: interactively generate a `hyprsummon` command and optional Hyprland bind
+- `setup`: discover a running application and generate a validated Hyprland Lua bind
+
+`wizard` remains available as an alias for `setup`.
 
 There is no config file. Behavior is controlled entirely through flags.
 
@@ -178,29 +180,52 @@ Use built-in help for current flag details:
 
 ```bash
 hyprsummon --help
-hyprsummon wizard
+hyprsummon setup
 hyprsummon run --help
 hyprsummon focus --help
 hyprsummon help flag --class
 hyprsummon help flag --toggle-special
 ```
 
-## 🧙 Wizard
+## 🧙 Interactive Setup
 
-Use the wizard when you want `hyprsummon` to generate the command for you.
+Use setup when you want `hyprsummon` to discover an application and generate the command for you.
 
 ```bash
-hyprsummon wizard
+hyprsummon setup
 ```
 
-The wizard is built with `huh` and walks through:
+The guided flow is built with `huh` and:
 
+- discovers and groups mapped Hyprland windows by exact class
+- lets you refresh discovery or enter a class manually
 - intent selection
 - class/title matching
 - launch command setup
 - special-workspace or scratch behavior
 - optional advanced flags
-- optional Hyprland bind generation
+- optional Hyprland 0.55+ Lua bind generation
+- non-mutating syntax validation through Hyprland's Lua runtime
+
+For example, generated bind output looks like:
+
+```lua
+hl.bind("SUPER + M", hl.dsp.exec_cmd("/absolute/path/to/hyprsummon run --class spotify -- spotify"), { repeating = false, description = "Summon Spotify" })
+```
+
+Setup prints its result by default and never edits or reloads your active Hyprland configuration. To create a standalone Lua snippet safely:
+
+```bash
+hyprsummon setup --format bind --output ~/.config/hypr/hyprsummon.lua
+```
+
+Then load it from `hyprland.lua`:
+
+```lua
+require("hyprsummon")
+```
+
+Existing files are preserved unless `--force` is explicit. Use `--accessible` or `--no-color` for line-oriented prompts. `wizard` can still be used as a backward-compatible alias.
 
 ## 🛠️ Build And Test
 
@@ -226,9 +251,10 @@ go test ./...
 
 - Linux
 - Go 1.26+
-- Hyprland running in the current session
+- Hyprland 0.55 or newer running in the current session
 - access to the Hyprland IPC socket
 - `XDG_RUNTIME_DIR` set
+- `hyprctl` for setup-time Lua validation
 
 Optional:
 
@@ -246,7 +272,7 @@ If `HYPRLAND_INSTANCE_SIGNATURE` is missing, it falls back to discovering a Hypr
 
 ## ⚠️ Limitations
 
-- no config file support
+- no persistent hyprsummon runtime config file
 - no regex matching
 - no persistent cycle state across invocations
 - no fallback notification backend beyond `notify-send`
